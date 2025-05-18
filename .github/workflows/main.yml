@@ -11,9 +11,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Путь теперь указывает на корень вашего проекта Unity
+        # Убедитесь, что это путь к корню вашего проекта Unity
         projectPath:
-          - 'Our project'  # Убедитесь, что это путь к корню вашего проекта
+          - 'Our project'  # Путь к корню вашего проекта Unity
         testMode:
           - playmode
           - editmode
@@ -78,6 +78,7 @@ jobs:
           # Укажите правильные пути к сценам относительно корня проекта
           scenes: |
             Assets/IndieMarc/TopDownDemo/TopDownDemo.unity
+          projectPath: ${{ matrix.projectPath }}  # Убедитесь, что projectPath указан здесь
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
