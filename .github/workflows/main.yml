@@ -1,8 +1,10 @@
 name: Test and Build Project
 
 on: 
-  workflow_dispatch:
-  push:
+
+  workflow_dispatch: # workflow dispatch is for manual run from actions page
+  push: # on push
+  
   
 jobs:
   testProject:
@@ -11,6 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # name of project folder or ./
+        projectPath:
+          - ./
         testMode:
           - playmode
           - editmode
@@ -21,8 +26,8 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: project/Library  # Updated path to include project folder
-          key: Library-${{ matrix.testMode }}
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.projectPath }}
           restore-keys: |
             Library-
       - uses: game-ci/unity-test-runner@v4
@@ -32,7 +37,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: project  # Pointing to your project folder
+          projectPath: ${{ matrix.projectPath }}
           testMode: ${{ matrix.testMode }}
           artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -51,10 +56,12 @@ jobs:
       fail-fast: false
       matrix:
         targetPlatform:		
-          - StandaloneWindows64
-          - StandaloneLinux64
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
           - Android
 
+         # comment or uncomment your desired platforms
+         
     steps:
       - uses: actions/checkout@v4
         with:
@@ -62,7 +69,7 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: project/Library  # Updated path to include project folder
+          path: Library
           key: Library-${{ matrix.targetPlatform }}
           restore-keys: Library-
       - uses: game-ci/unity-builder@v4
@@ -71,7 +78,6 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: project  # Pointing to your project folder
           targetPlatform: ${{ matrix.targetPlatform }}
       - uses: actions/upload-artifact@v4
         with:
