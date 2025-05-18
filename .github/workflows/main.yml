@@ -62,6 +62,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           lfs: true
           path: ${{ env.UNITY_PROJECT_PATH }}  # Важно: тот же путь при checkout
       
@@ -83,7 +84,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          projectPath: ${{ env.UNITY_PROJECT_PATH }}
+          projectPath: ./
           buildName: ${{ matrix.targetPlatform }}
           buildsPath: build
       
