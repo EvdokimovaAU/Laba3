@@ -1,8 +1,8 @@
 name: Test and Build Project
 
 on: 
-  workflow_dispatch: # workflow dispatch is for manual run from actions page
-  push: # on push
+  workflow_dispatch:
+  push:
   
 jobs:
   testProject:
@@ -19,12 +19,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+          
+      - name: Verify project structure
+        run: |
+          ls -la "Our project/ProjectSettings"
+          if [ ! -f "Our project/ProjectSettings/ProjectVersion.txt" ]; then
+            echo "::error::ProjectVersion.txt not found at Our project/ProjectSettings/"
+            exit 1
+          fi
+
       - uses: actions/cache@v4
         with:
           path: Our project/Library
-          key: Library-Our-project
+          key: Library-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-
+            
       - uses: game-ci/unity-test-runner@v4
         id: tests
         env:
@@ -32,16 +42,16 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: "Our project"  # Указываем путь к папке проекта, а не к файлу
+          projectPath: "Our project"  # Корневая папка Unity проекта
           testMode: ${{ matrix.testMode }}
-          artifactsPath: ${{ matrix.testMode }}-artifacts
+          artifactsPath: "test-results/${{ matrix.testMode }}"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          checkName: ${{ matrix.testMode }} Test Results          
+          
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Test results for ${{ matrix.testMode }}
-          path: ${{ matrix.testMode }}-artifacts  # Исправленный путь к артефактам
+          name: "Test results - ${{ matrix.testMode }}"
+          path: "test-results/${{ matrix.testMode }}"
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -50,9 +60,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        targetPlatform:		
-          - StandaloneWindows64 # Build a Windows 64-bit standalone.
-          - StandaloneLinux64 # Build a Linux 64-bit standalone.
+        targetPlatform:        
+          - StandaloneWindows64
+          - StandaloneLinux64
           - Android
 
     steps:
@@ -60,20 +70,26 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
+          
       - uses: actions/cache@v4
         with:
           path: Our project/Library
-          key: Library-${{ matrix.targetPlatform }}
-          restore-keys: Library-
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: |
+            Library-
+            
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: "Our project"  # Указываем путь к папке проекта
+          projectPath: "Our project"
           targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: "${{ matrix.targetPlatform }}"
+          buildsPath: "build"
+          
       - uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          name: "Build - ${{ matrix.targetPlatform }}"
+          path: "build/${{ matrix.targetPlatform }}"
