@@ -1,12 +1,11 @@
 name: Test and Build Project
 
 on: 
-  workflow_dispatch:
-  push:
-  
-env:
-  UNITY_PROJECT_PATH: 'Laba3/Our project'  # Путь с пробелом
 
+  workflow_dispatch: # workflow dispatch is for manual run from actions page
+  push: # on push
+  
+  
 jobs:
   testProject:
     name: Test in ${{ matrix.testMode }}
@@ -14,6 +13,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # name of project folder or ./
+        projectPath:
+          - ./
         testMode:
           - playmode
           - editmode
@@ -22,22 +24,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          path: '${{ env.UNITY_PROJECT_PATH }}'  # Заключаем путь в кавычки
-      
-      - name: Verify project structure
-        run: |
-          ls -la "${{ env.UNITY_PROJECT_PATH }}"  # Кавычки вокруг пути
-          ls -la "${{ env.UNITY_PROJECT_PATH }}/Assets"
-          ls -la "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings"
-          test -f "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt" || exit 1
-      
       - uses: actions/cache@v4
         with:
-          path: '${{ env.UNITY_PROJECT_PATH }}/Library'  # Кавычки вокруг пути
-          key: Library-${{ hashFiles('${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt') }}
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.projectPath }}
           restore-keys: |
             Library-
-
       - uses: game-ci/unity-test-runner@v4
         id: tests
         env:
@@ -45,16 +37,16 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
+          projectPath: ${{ matrix.projectPath }}
           testMode: ${{ matrix.testMode }}
+          artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Test Results
+          checkName: ${{ matrix.testMode }} Test Results          
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: TestResults-${{ matrix.testMode }}
-          path: '${{ env.UNITY_PROJECT_PATH }}/TestResults'  # Кавычки вокруг пути
+          name: Test results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.artifactsPath }}
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -64,28 +56,22 @@ jobs:
       fail-fast: false
       matrix:
         targetPlatform:		
-          - StandaloneWindows64
-          - StandaloneLinux64 
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
           - Android
 
+         # comment or uncomment your desired platforms
+         
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           lfs: true
-          path: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
-      
-      - name: Verify project files exist
-        run: test -f "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt" || exit 1
-      
       - uses: actions/cache@v4
         with:
-          path: '${{ env.UNITY_PROJECT_PATH }}/Library'  # Кавычки вокруг пути
-          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: |
-            Library-${{ matrix.targetPlatform }}-
-            Library-
-
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -93,10 +79,6 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          projectPath: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
-          buildName: ${{ matrix.targetPlatform }}
-          buildsPath: build
-      
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
