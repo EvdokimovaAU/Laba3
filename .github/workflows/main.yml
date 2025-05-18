@@ -15,7 +15,7 @@ jobs:
       matrix:
         # name of project folder or ./
         projectPath:
-          - ./
+          - Our project/ProjectSettings/ProjectVersion.txt
         testMode:
           - playmode
           - editmode
