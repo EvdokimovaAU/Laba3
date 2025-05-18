@@ -1,11 +1,11 @@
 name: Test and Build Project
 
 on: 
-  workflow_dispatch: # workflow dispatch is for manual run from actions page
-  push: # on push
+  workflow_dispatch:
+  push:
   
 env:
-  UNITY_PROJECT_PATH: 'Our project'  # Общий путь к проекту для всех jobs
+  UNITY_PROJECT_PATH: '.'  # Используем корень репозитория
 
 jobs:
   testProject:
@@ -24,8 +24,8 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: Library-${{ env.UNITY_PROJECT_PATH }}
+          path: Library
+          key: Library-${{ hashFiles('ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-
       - uses: game-ci/unity-test-runner@v4
@@ -37,14 +37,7 @@ jobs:
         with:
           projectPath: ${{ env.UNITY_PROJECT_PATH }}
           testMode: ${{ matrix.testMode }}
-          artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          checkName: ${{ matrix.testMode }} Test Results          
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: Test results for ${{ matrix.testMode }}
-          path: ${{ steps.tests.outputs.artifactsPath }}
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -54,19 +47,18 @@ jobs:
       fail-fast: false
       matrix:
         targetPlatform:		
-          - StandaloneWindows64 # Build a Windows 64-bit standalone.
-          - StandaloneLinux64 # Build a Linux 64-bit standalone.
+          - StandaloneWindows64
+          - StandaloneLinux64 
           - Android
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
-          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles(format('{0}/Assets/**', env.UNITY_PROJECT_PATH)) }}
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-${{ matrix.targetPlatform }}-
             Library-
