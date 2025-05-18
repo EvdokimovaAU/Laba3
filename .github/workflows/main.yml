@@ -11,8 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        projectPath:
-          - 'Our project'  # Path to the root of your Unity project
+        projectPath: 'Our project'  # Единый путь для всех тестов
         testMode:
           - playmode
           - editmode
@@ -21,13 +20,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-      - name: List project directory
-        run: ls -R 'Our project'  # List contents to verify structure
+      - name: Verify project structure
+        run: |
+          ls -R '${{ matrix.projectPath }}'
+          test -f '${{ matrix.projectPath }}/ProjectSettings/ProjectVersion.txt'
       - uses: actions/cache@v4
         with:
           path: ${{ matrix.projectPath }}/Library
-          key: Library-${{ matrix.projectPath }}
+          key: Library-${{ matrix.projectPath }}-${{ matrix.testMode }}
           restore-keys: |
+            Library-${{ matrix.projectPath }}-
             Library-
       - uses: game-ci/unity-test-runner@v4
         id: tests
@@ -46,6 +48,48 @@ jobs:
         with:
           name: Test results for ${{ matrix.testMode }}
           path: ${{ steps.tests.outputs.artifactsPath }}
+
+  buildForAllDesiredPlatforms:
+    needs: testProject
+    name: Build for ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        projectPath: 'Our project'  # Единый путь для всех платформ
+        targetPlatform:		
+          - StandaloneWindows64
+          - StandaloneLinux64
+          - Android
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+      - name: Verify project structure
+        run: |
+          ls -R '${{ matrix.projectPath }}'
+          test -f '${{ matrix.projectPath }}/ProjectSettings/ProjectVersion.txt'
+      - uses: actions/cache@v4
+        with:
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
+      - uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          projectPath: ${{ matrix.projectPath }}
+          buildName: ${{ matrix.targetPlatform }}
+          buildsPath: build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
 
   buildForAllDesiredPlatforms:
     needs: testProject
