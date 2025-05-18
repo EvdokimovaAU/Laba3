@@ -4,6 +4,9 @@ on:
   workflow_dispatch: # workflow dispatch is for manual run from actions page
   push: # on push
   
+env:
+  UNITY_PROJECT_PATH: 'Our project'  # Общий путь к проекту для всех jobs
+
 jobs:
   testProject:
     name: Test in ${{ matrix.testMode }}
@@ -11,9 +14,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Убедитесь, что это путь к корню вашего проекта Unity
-        projectPath:
-          - 'Our project'  # Путь к корню вашего проекта Unity
         testMode:
           - playmode
           - editmode
@@ -24,8 +24,8 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: ${{ matrix.projectPath }}/Library
-          key: Library-${{ matrix.projectPath }}
+          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          key: Library-${{ env.UNITY_PROJECT_PATH }}
           restore-keys: |
             Library-
       - uses: game-ci/unity-test-runner@v4
@@ -35,7 +35,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: ${{ matrix.projectPath }}
+          projectPath: ${{ env.UNITY_PROJECT_PATH }}
           testMode: ${{ matrix.testMode }}
           artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -65,9 +65,11 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: Library
-          key: Library-${{ matrix.targetPlatform }}
-          restore-keys: Library-
+          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles(format('{0}/Assets/**', env.UNITY_PROJECT_PATH)) }}
+          restore-keys: |
+            Library-${{ matrix.targetPlatform }}-
+            Library-
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -75,10 +77,9 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          # Укажите правильные пути к сценам относительно корня проекта
-          scenes: |
-            Assets/IndieMarc/TopDownDemo/TopDownDemo.unity
-          projectPath: ${{ matrix.projectPath }}  # Убедитесь, что projectPath указан здесь
+          projectPath: ${{ env.UNITY_PROJECT_PATH }}
+          buildName: ${{ matrix.targetPlatform }}
+          buildsPath: build
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
