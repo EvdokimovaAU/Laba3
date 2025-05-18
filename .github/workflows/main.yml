@@ -1,10 +1,8 @@
 name: Test and Build Project
 
 on: 
-
   workflow_dispatch: # workflow dispatch is for manual run from actions page
   push: # on push
-  
   
 jobs:
   testProject:
@@ -13,9 +11,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # name of project folder or ./
-        projectPath:
-          - Our project/ProjectSettings/ProjectVersion.txt
         testMode:
           - playmode
           - editmode
@@ -26,8 +21,8 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: ${{ matrix.projectPath }}/Library
-          key: Library-${{ matrix.projectPath }}
+          path: Our project/Library
+          key: Library-Our-project
           restore-keys: |
             Library-
       - uses: game-ci/unity-test-runner@v4
@@ -37,7 +32,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: ${{ matrix.projectPath }}
+          projectPath: "Our project"  # Указываем путь к папке проекта, а не к файлу
           testMode: ${{ matrix.testMode }}
           artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +41,7 @@ jobs:
         if: always()
         with:
           name: Test results for ${{ matrix.testMode }}
-          path: ${{ steps.tests.outputs.artifactsPath }}
+          path: ${{ matrix.testMode }}-artifacts  # Исправленный путь к артефактам
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -60,8 +55,6 @@ jobs:
           - StandaloneLinux64 # Build a Linux 64-bit standalone.
           - Android
 
-         # comment or uncomment your desired platforms
-         
     steps:
       - uses: actions/checkout@v4
         with:
@@ -69,7 +62,7 @@ jobs:
           lfs: true
       - uses: actions/cache@v4
         with:
-          path: Library
+          path: Our project/Library
           key: Library-${{ matrix.targetPlatform }}
           restore-keys: Library-
       - uses: game-ci/unity-builder@v4
@@ -78,6 +71,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          projectPath: "Our project"  # Указываем путь к папке проекта
           targetPlatform: ${{ matrix.targetPlatform }}
       - uses: actions/upload-artifact@v4
         with:
