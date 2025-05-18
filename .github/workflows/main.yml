@@ -1,10 +1,9 @@
-name: Unity CI Pipeline
+name: Test and Build Project
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-
+on: 
+  workflow_dispatch: # workflow dispatch is for manual run from actions page
+  push: # on push
+  
 jobs:
   testProject:
     name: Test in ${{ matrix.testMode }}
@@ -12,6 +11,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Путь теперь указывает на корень вашего проекта Unity
+        projectPath:
+          - 'Our project'  # Убедитесь, что это путь к корню вашего проекта
         testMode:
           - playmode
           - editmode
@@ -20,24 +22,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
-
-      - name: Verify project structure
-        run: |
-          echo "Checking project structure..."
-          ls -la "Our project/ProjectSettings"
-          if [ ! -f "Our project/ProjectSettings/ProjectVersion.txt" ]; then
-            echo "::error::ProjectVersion.txt not found!"
-            exit 1
-          fi
-
       - uses: actions/cache@v4
         with:
-          path: Our project/Library
-          key: Library-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.projectPath }}
           restore-keys: |
             Library-
-
       - uses: game-ci/unity-test-runner@v4
         id: tests
         env:
@@ -45,16 +35,16 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: "Our project"
+          projectPath: ${{ matrix.projectPath }}
           testMode: ${{ matrix.testMode }}
-          artifactsPath: "test-results/${{ matrix.testMode }}"
+          artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-
+          checkName: ${{ matrix.testMode }} Test Results          
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: "Test Results - ${{ matrix.testMode }}"
-          path: "test-results/${{ matrix.testMode }}"
+          name: Test results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.artifactsPath }}
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -63,46 +53,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        targetPlatform:
-          - StandaloneWindows64
-          - StandaloneLinux64
+        targetPlatform:		
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
           - Android
 
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true
           fetch-depth: 0
-
-      - name: Verify scene file
-        run: |
-          echo "Checking scene file..."
-          ls -la "Our project/Assets/IndleWave/TopDownDemo/"
-          if [ ! -f "Our project/Assets/IndleWave/TopDownDemo/TopDownDemo.unity" ]; then
-            echo "::error::Scene file not found at Our project/Assets/IndleWave/TopDownDemo/TopDownDemo.unity"
-            exit 1
-          fi
-
+          lfs: true
       - uses: actions/cache@v4
         with:
-          path: Our project/Library
-          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
-          restore-keys: |
-            Library-
-
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: "Our project"
           targetPlatform: ${{ matrix.targetPlatform }}
-          scenes: "Assets/IndleWave/TopDownDemo/TopDownDemo.unity"
-          buildName: "${{ matrix.targetPlatform }}"
-          buildsPath: "build"
-
+          # Укажите правильные пути к сценам относительно корня проекта
+          scenes: |
+            Assets/IndieMarc/TopDownDemo/TopDownDemo.unity
       - uses: actions/upload-artifact@v4
         with:
-          name: "Build - ${{ matrix.targetPlatform }}"
-          path: "build/${{ matrix.targetPlatform }}"
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
