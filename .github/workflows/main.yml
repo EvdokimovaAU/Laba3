@@ -5,7 +5,7 @@ on:
   push:
   
 env:
-  UNITY_PROJECT_PATH: 'Laba3/Our project'  # Явный путь к проекту
+  UNITY_PROJECT_PATH: 'Laba3/Our project'  # Путь с пробелом
 
 jobs:
   testProject:
@@ -22,18 +22,18 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          path: ${{ env.UNITY_PROJECT_PATH }}
+          path: '${{ env.UNITY_PROJECT_PATH }}'  # Заключаем путь в кавычки
       
       - name: Verify project structure
         run: |
-          ls -la ${{ env.UNITY_PROJECT_PATH }}
-          ls -la ${{ env.UNITY_PROJECT_PATH }}/Assets
-          ls -la ${{ env.UNITY_PROJECT_PATH }}/ProjectSettings
+          ls -la "${{ env.UNITY_PROJECT_PATH }}"  # Кавычки вокруг пути
+          ls -la "${{ env.UNITY_PROJECT_PATH }}/Assets"
+          ls -la "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings"
           test -f "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt" || exit 1
       
       - uses: actions/cache@v4
         with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          path: '${{ env.UNITY_PROJECT_PATH }}/Library'  # Кавычки вокруг пути
           key: Library-${{ hashFiles('${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-
@@ -45,7 +45,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: ${{ env.UNITY_PROJECT_PATH }}
+          projectPath: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
           testMode: ${{ matrix.testMode }}
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: TestResults-${{ matrix.testMode }}
-          path: ${{ env.UNITY_PROJECT_PATH }}/TestResults
+          path: '${{ env.UNITY_PROJECT_PATH }}/TestResults'  # Кавычки вокруг пути
 
   buildForAllDesiredPlatforms:
     needs: testProject
@@ -73,14 +73,14 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
-          path: ${{ env.UNITY_PROJECT_PATH }}
+          path: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
       
       - name: Verify project files exist
         run: test -f "${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt" || exit 1
       
       - uses: actions/cache@v4
         with:
-          path: ${{ env.UNITY_PROJECT_PATH }}/Library
+          path: '${{ env.UNITY_PROJECT_PATH }}/Library'  # Кавычки вокруг пути
           key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('${{ env.UNITY_PROJECT_PATH }}/ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-${{ matrix.targetPlatform }}-
@@ -93,7 +93,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          projectPath: ${{ env.UNITY_PROJECT_PATH }}
+          projectPath: '${{ env.UNITY_PROJECT_PATH }}'  # Кавычки вокруг пути
           buildName: ${{ matrix.targetPlatform }}
           buildsPath: build
       
