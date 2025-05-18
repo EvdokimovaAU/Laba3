@@ -1,9 +1,10 @@
-name: Test and Build Project
+name: Unity CI Pipeline
 
-on: 
+on:
   workflow_dispatch:
   push:
-  
+    branches: [ main ]
+
 jobs:
   testProject:
     name: Test in ${{ matrix.testMode }}
@@ -19,12 +20,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          
+          fetch-depth: 0
+
       - name: Verify project structure
         run: |
+          echo "Checking project structure..."
           ls -la "Our project/ProjectSettings"
           if [ ! -f "Our project/ProjectSettings/ProjectVersion.txt" ]; then
-            echo "::error::ProjectVersion.txt not found at Our project/ProjectSettings/"
+            echo "::error::ProjectVersion.txt not found!"
             exit 1
           fi
 
@@ -34,7 +37,7 @@ jobs:
           key: Library-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-
-            
+
       - uses: game-ci/unity-test-runner@v4
         id: tests
         env:
@@ -42,15 +45,15 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: "Our project"  # Корневая папка Unity проекта
+          projectPath: "Our project"
           testMode: ${{ matrix.testMode }}
           artifactsPath: "test-results/${{ matrix.testMode }}"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: "Test results - ${{ matrix.testMode }}"
+          name: "Test Results - ${{ matrix.testMode }}"
           path: "test-results/${{ matrix.testMode }}"
 
   buildForAllDesiredPlatforms:
@@ -60,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        targetPlatform:        
+        targetPlatform:
           - StandaloneWindows64
           - StandaloneLinux64
           - Android
@@ -68,16 +71,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           lfs: true
-          
+          fetch-depth: 0
+
+      - name: Verify scene file
+        run: |
+          echo "Checking scene file..."
+          ls -la "Our project/Assets/IndleWave/TopDownDemo/"
+          if [ ! -f "Our project/Assets/IndleWave/TopDownDemo/TopDownDemo.unity" ]; then
+            echo "::error::Scene file not found at Our project/Assets/IndleWave/TopDownDemo/TopDownDemo.unity"
+            exit 1
+          fi
+
       - uses: actions/cache@v4
         with:
           path: Our project/Library
           key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Our project/ProjectSettings/ProjectVersion.txt') }}
           restore-keys: |
             Library-
-            
+
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -86,9 +98,10 @@ jobs:
         with:
           projectPath: "Our project"
           targetPlatform: ${{ matrix.targetPlatform }}
+          scenes: "Assets/IndleWave/TopDownDemo/TopDownDemo.unity"
           buildName: "${{ matrix.targetPlatform }}"
           buildsPath: "build"
-          
+
       - uses: actions/upload-artifact@v4
         with:
           name: "Build - ${{ matrix.targetPlatform }}"
