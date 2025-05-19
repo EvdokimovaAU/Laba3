@@ -55,9 +55,11 @@ jobs:
       fail-fast: false
       matrix:
         targetPlatform:		
-          - StandaloneWindows64
-          - StandaloneLinux64
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
           - Android
+
+         # comment or uncomment your desired platforms
          
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +78,6 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          projectPath:  'Our project'
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
