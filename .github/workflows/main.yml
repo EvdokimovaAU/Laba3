@@ -76,7 +76,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
-          projectPath: "Our project"  # Also add this for builder
+          projectPath: "Our project/Assets/IndieMarc/PlatformerDemo"
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
