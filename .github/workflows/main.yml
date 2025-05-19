@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         projectPath:
-          - "Our project/ProjectSettings"  # Updated to match your folder structure
+          - "Our project/ProjectSettings/"  # Updated to match your folder structure
         testMode:
           - playmode
           - editmode
