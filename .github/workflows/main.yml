@@ -16,8 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        projectPath:
-          - "Our project/ProjectSettings"
+
         testMode:
           - playmode
           - editmode
