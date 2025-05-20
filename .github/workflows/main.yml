@@ -16,10 +16,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-
         testMode:
           - playmode
           - editmode
+        projectPath: ["Our project"]  # Добавьте правильный путь к вашему Unity проекту
 
     steps:
       - uses: actions/checkout@v4
