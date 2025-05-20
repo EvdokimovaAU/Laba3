@@ -1,110 +1,84 @@
-name: Unity Test and Build
+name: Test and Build Project
 
-on:
+on: 
   workflow_dispatch:
   push:
-    branches: [ main ]
-
-permissions:
-  checks: write
-  contents: read
-
+  
 jobs:
-  setup:
-    name: Verify Project Structure
-    runs-on: ubuntu-latest
-    outputs:
-      project-valid: ${{ steps.validate.outputs.valid }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-          fetch-depth: 0
-
-      - id: validate
-        name: Check Project Files
-        run: |
-          if [ -f "ProjectSettings/ProjectVersion.txt" ]; then
-            echo "Project structure valid"
-            echo "valid=true" >> $GITHUB_OUTPUT
-          else
-            echo "::error::Missing ProjectSettings/ProjectVersion.txt"
-            echo "valid=false" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-
   testProject:
     name: Test in ${{ matrix.testMode }}
-    needs: setup
-    if: needs.setup.outputs.project-valid == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        testMode: [playmode, editmode]
-        
+        projectPath:
+          - "Our project"  # Updated to match your folder structure
+        testMode:
+          - playmode
+          - editmode
+
     steps:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0
-
+      - name: Debug project structure
+        run: ls -R
       - uses: actions/cache@v4
         with:
-          path: Library
-          key: Library-${{ matrix.testMode }}-${{ github.sha }}
+          path: ${{ matrix.projectPath }}/Library
+          key: Library-${{ matrix.projectPath }}
           restore-keys: |
-            Library-${{ matrix.testMode }}-
             Library-
-
       - uses: game-ci/unity-test-runner@v4
+        id: tests
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: .
+          projectPath: ${{ matrix.projectPath }}
           testMode: ${{ matrix.testMode }}
-          artifactsPath: test-results/${{ matrix.testMode }}
+          artifactsPath: ${{ matrix.testMode }}-artifacts
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          unityVersion: 2022.3.21f1  # Замените на вашу версию Unity
-
+          checkName: ${{ matrix.testMode }} Test Results          
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: Test-Results-${{ matrix.testMode }}
-          path: test-results/${{ matrix.testMode }}
+          name: Test results for ${{ matrix.testMode }}
+          path: ${{ steps.tests.outputs.artifactsPath }}
 
-  buildProject:
-    name: Build for ${{ matrix.platform }}
+  buildForAllDesiredPlatforms:
     needs: testProject
+    name: Build for ${{ matrix.targetPlatform }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        platform: [StandaloneWindows64, StandaloneLinux64, Android]
-        
+        targetPlatform:		
+          - StandaloneWindows64 # Build a Windows 64-bit standalone.
+          - StandaloneLinux64 # Build a Linux 64-bit standalone.
+          - Android
+
+         # comment or uncomment your desired platforms
+         
     steps:
       - uses: actions/checkout@v4
         with:
-          lfs: true
           fetch-depth: 0
-
+          lfs: true
       - uses: actions/cache@v4
         with:
           path: Library
-          key: Library-${{ matrix.platform }}-${{ github.sha }}
-          restore-keys: |
-            Library-${{ matrix.platform }}-
-            Library-
-
+          key: Library-${{ matrix.targetPlatform }}
+          restore-keys: Library-
       - uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: .
-          targetPlatform: ${{ matrix.platform }}
-          unityVersion: 2022.3.21f1  # Замените на вашу версию Unity
-
+          targetPlatform: ${{ matrix.targetPlatform }}
       - uses: actions/upload-artifact@v4
         with:
-          name: Build-${{ matrix.platform }}
-          path: build/${{ matrix.platform }}
+          name: Build-${{ matrix.targetPlatform }}
+          path: build/${{ matrix.targetPlatform }}
