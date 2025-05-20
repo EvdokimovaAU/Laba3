@@ -60,6 +60,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        projectPath:
+        - Our project
+      
         targetPlatform:
           - StandaloneWindows64
           - StandaloneLinux64
