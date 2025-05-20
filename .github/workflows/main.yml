@@ -15,10 +15,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        projectPath:
+        - ./
         testMode:
           - playmode
           - editmode
-        projectPath: ["Our project"]  # Путь к Unity-проекту
+        
 
     steps:
       - uses: actions/checkout@v4
@@ -62,7 +64,7 @@ jobs:
           - StandaloneWindows64
           - StandaloneLinux64
           - Android
-        projectPath: ["Our project"]  # Добавляем путь к проекту в матрицу
+
 
     steps:
       - uses: actions/checkout@v4
