@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   push: 
 
-#  Разрешения на запись в Checks API
 permissions:
   checks: write
   contents: read
@@ -16,8 +15,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        projectPath:
-          - ./
+        # Update this to match your actual project directory
+        projectPath: [ "." ]  # or the correct relative path if not at root
         testMode:
           - playmode
           - editmode
@@ -26,6 +25,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+          fetch-depth: 0  # Important for Unity projects
 
       - uses: actions/cache@v4
         with:
@@ -84,6 +84,7 @@ jobs:
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
           targetPlatform: ${{ matrix.targetPlatform }}
+          projectPath: ${{ matrix.projectPath }}  # Add this to match test job
 
       - uses: actions/upload-artifact@v4
         with:
