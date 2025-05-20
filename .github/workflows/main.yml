@@ -2,8 +2,9 @@ name: Test and Build Project
 
 on:
   workflow_dispatch:
-  push:
+  push: 
 
+#  Разрешения на запись в Checks API
 permissions:
   checks: write
   contents: read
@@ -16,7 +17,7 @@ jobs:
       fail-fast: false
       matrix:
         projectPath:
-          - "."  # Изменено на текущую директорию или правильный путь к проекту
+          - ./
         testMode:
           - playmode
           - editmode
@@ -25,7 +26,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
-          fetch-depth: 0  # Добавлено для полной истории коммитов
 
       - uses: actions/cache@v4
         with:
@@ -83,7 +83,6 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          projectPath: ${{ matrix.projectPath }}  # Добавлено для согласованности
           targetPlatform: ${{ matrix.targetPlatform }}
 
       - uses: actions/upload-artifact@v4
