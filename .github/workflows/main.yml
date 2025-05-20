@@ -2,9 +2,8 @@ name: Test and Build Project
 
 on:
   workflow_dispatch:
-  push: 
+  push:
 
-#  Разрешения на запись в Checks API
 permissions:
   checks: write
   contents: read
@@ -19,7 +18,7 @@ jobs:
         testMode:
           - playmode
           - editmode
-        projectPath: ["Our project"]  # Добавьте правильный путь к вашему Unity проекту
+        projectPath: ["Our project"]  # Путь к Unity-проекту
 
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +62,7 @@ jobs:
           - StandaloneWindows64
           - StandaloneLinux64
           - Android
+        projectPath: ["Our project"]  # Добавляем путь к проекту в матрицу
 
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +72,7 @@ jobs:
 
       - uses: actions/cache@v4
         with:
-          path: Library
+          path: ${{ matrix.projectPath }}/Library  # Обновляем путь для кэша
           key: Library-${{ matrix.targetPlatform }}
           restore-keys: Library-
 
@@ -82,9 +82,10 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
+          projectPath: ${{ matrix.projectPath }}  # Указываем путь к проекту
           targetPlatform: ${{ matrix.targetPlatform }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: Build-${{ matrix.targetPlatform }}
-          path: build/${{ matrix.targetPlatform }}
+          path: ${{ matrix.projectPath }}/build/${{ matrix.targetPlatform }}  # Обновляем путь для артефактов
